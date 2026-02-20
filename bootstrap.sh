@@ -2,15 +2,19 @@
 set -euo pipefail
 
 # eve-bootstrap-pub bootstrapper
-# Non-interactive entrypoint for bringing up a machine using the *private* eve-bootstrap repo.
+# Public entrypoint for bringing up a machine using the *private* eve-bootstrap repo.
 #
-# Usage:
+# GH auth is **non-interactive** (GH_TOKEN must be provided via env).
+# The rest of the flow is delegated to the private repo's bootstrap.sh.
+#
+# Usage (piped; may not have TTY):
 #   export GH_TOKEN=github_pat_...
 #   curl -fsSL https://raw.githubusercontent.com/rixbeck/eve-bootstrap-pub/main/bootstrap.sh | bash
 #
-# Notes:
-# - This script is non-interactive; it will not prompt for secrets.
-# - If secrets are missing, the private repo's install.sh may require an interactive TTY.
+# Usage (interactive TTY recommended for secrets prompts):
+#   export GH_TOKEN=github_pat_...
+#   curl -fsSL https://raw.githubusercontent.com/rixbeck/eve-bootstrap-pub/main/bootstrap.sh -o /tmp/eve-bootstrap.sh
+#   bash /tmp/eve-bootstrap.sh
 
 REPO_URL="https://github.com/rixbeck/eve-bootstrap.git"
 CHECKOUT_DIR="${HOME}/.local/src/eve-bootstrap"
@@ -48,7 +52,7 @@ else
   git clone "${REPO_URL}" "${CHECKOUT_DIR}"
 fi
 
-echo "[bootstrap] Running private installer"
+echo "[bootstrap] Delegating to private bootstrap.sh"
 cd "${CHECKOUT_DIR}"
-chmod +x ./install.sh || true
-./install.sh
+chmod +x ./bootstrap.sh || true
+./bootstrap.sh
