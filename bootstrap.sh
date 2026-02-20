@@ -24,13 +24,13 @@ mkdir -p "${HOME}/.local/src"
 if ! command -v git >/dev/null 2>&1; then
   echo "[bootstrap] Installing git..."
   sudo apt-get update -y
-  sudo apt-get install -y git
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y git
 fi
 
 if ! command -v gh >/dev/null 2>&1; then
   echo "[bootstrap] Installing gh (GitHub CLI)..."
   sudo apt-get update -y
-  sudo apt-get install -y gh
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y gh
 fi
 
 if [[ -z "${GH_TOKEN:-}" ]]; then
@@ -45,11 +45,15 @@ fi
 # Non-interactive auth for gh
 printf '%s' "$GH_TOKEN" | gh auth login --with-token >/dev/null
 
+# Ensure git operations can use gh auth (HTTPS)
+gh auth setup-git >/dev/null 2>&1 || true
+
 echo "[bootstrap] Cloning/updating private repo into $CHECKOUT_DIR"
 if [[ -d "${CHECKOUT_DIR}/.git" ]]; then
   git -C "${CHECKOUT_DIR}" pull --ff-only
 else
-  git clone "${REPO_URL}" "${CHECKOUT_DIR}"
+  # Use gh so private repo clone works without additional git credential prompts
+  gh repo clone rixbeck/eve-bootstrap "$CHECKOUT_DIR"
 fi
 
 echo "[bootstrap] Delegating to private bootstrap.sh"
