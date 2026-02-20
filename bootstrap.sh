@@ -47,7 +47,8 @@ fi
 
 echo "[bootstrap] Cloning/updating private repo into $CHECKOUT_DIR"
 if [[ -d "${CHECKOUT_DIR}/.git" ]]; then
-  git -C "${CHECKOUT_DIR}" pull --ff-only
+  # Use gh so private repo sync works with GH_TOKEN (no git credential prompts)
+  (cd "${CHECKOUT_DIR}" && gh repo sync)
 else
   # Use gh so private repo clone works without additional git credential prompts
   gh repo clone rixbeck/eve-bootstrap "$CHECKOUT_DIR"
