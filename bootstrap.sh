@@ -42,11 +42,8 @@ EOM
   exit 2
 fi
 
-# Non-interactive auth for gh
-printf '%s' "$GH_TOKEN" | gh auth login --with-token >/dev/null
-
-# Ensure git operations can use gh auth (HTTPS)
-gh auth setup-git >/dev/null 2>&1 || true
+# We intentionally do NOT run `gh auth login` here.
+# When GH_TOKEN is set, GitHub CLI uses it automatically for authentication.
 
 echo "[bootstrap] Cloning/updating private repo into $CHECKOUT_DIR"
 if [[ -d "${CHECKOUT_DIR}/.git" ]]; then
