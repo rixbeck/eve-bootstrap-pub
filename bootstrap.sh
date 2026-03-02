@@ -42,8 +42,16 @@ EOM
   exit 2
 fi
 
-# We intentionally do NOT run `gh auth login` here.
-# When GH_TOKEN is set, GitHub CLI uses it automatically for authentication.
+# Explicitly authenticate gh with GH_TOKEN (clear any stale auth state)
+echo "[bootstrap] Authenticating gh with GH_TOKEN"
+rm -rf ~/.config/gh/hosts.yml ~/.config/gh/config.yml 2>/dev/null || true
+echo "$GH_TOKEN" | gh auth login --with-token --hostname github.com
+
+echo "[bootstrap] Verifying authentication"
+if ! gh auth status >/dev/null 2>&1; then
+  echo "[bootstrap] ERROR: gh auth failed despite GH_TOKEN being set" >&2
+  exit 1
+fi
 
 echo "[bootstrap] Cloning/updating private repo into $CHECKOUT_DIR"
 if [[ -d "${CHECKOUT_DIR}/.git" ]]; then
