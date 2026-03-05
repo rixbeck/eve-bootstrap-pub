@@ -16,6 +16,15 @@ export GH_TOKEN=github_pat_...
 curl -fsSL https://raw.githubusercontent.com/rixbeck/eve-bootstrap-pub/main/bootstrap.sh | bash
 ```
 
+### Option A2 — file-based token (matches ~/.config/eve-bootstrap/.env convention)
+
+```bash
+mkdir -p ~/.config/eve-bootstrap
+printf '%s\n' 'GH_TOKEN=github_pat_...' > ~/.config/eve-bootstrap/.env
+chmod 600 ~/.config/eve-bootstrap/.env
+curl -fsSL https://raw.githubusercontent.com/rixbeck/eve-bootstrap-pub/main/bootstrap.sh | bash
+```
+
 ### Option B — interactive TTY (recommended)
 
 Use this when the private installer may need to prompt (git-crypt key / secrets wizard).
@@ -34,7 +43,9 @@ What it does:
 
 ## Notes
 
-- GH auth is intentionally **non-interactive**: `GH_TOKEN` must be set via environment.
+- GH auth is intentionally **non-interactive**.
+  - Preferred: `GH_TOKEN` set via environment.
+  - Fallback: `~/.config/eve-bootstrap/.env` containing `GH_TOKEN=...`.
 - Whether the rest of the flow is interactive depends on how you run the script:
   - piped (`curl ... | bash`) often has no TTY
   - file + `bash` gives you a TTY

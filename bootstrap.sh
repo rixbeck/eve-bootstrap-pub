@@ -4,7 +4,9 @@ set -euo pipefail
 # eve-bootstrap-pub bootstrapper
 # Public entrypoint for bringing up a machine using the *private* eve-bootstrap repo.
 #
-# GH auth is **non-interactive** (GH_TOKEN must be provided via env).
+# GH auth is **non-interactive**.
+# - Preferred: provide GH_TOKEN via environment.
+# - Fallback: store GH_TOKEN in ~/.config/eve-bootstrap/.env (key=value) and the script will load it.
 # The rest of the flow is delegated to the private repo's bootstrap.sh.
 #
 # Usage (piped; may not have TTY):
@@ -33,11 +35,24 @@ if ! command -v gh >/dev/null 2>&1; then
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y gh
 fi
 
+# Optional fallback: load GH_TOKEN from ~/.config/eve-bootstrap/.env
+# (This keeps VM bringup zero-config except the two critical secrets.)
+EVE_BOOTSTRAP_ENV_FILE="${EVE_BOOTSTRAP_ENV_FILE:-$HOME/.config/eve-bootstrap/.env}"
+if [[ -z "${GH_TOKEN:-}" && -f "$EVE_BOOTSTRAP_ENV_FILE" ]]; then
+  echo "[bootstrap] Loading secrets from $EVE_BOOTSTRAP_ENV_FILE" >&2
+  # shellcheck disable=SC1090
+  set -a
+  . "$EVE_BOOTSTRAP_ENV_FILE"
+  set +a
+fi
+
 if [[ -z "${GH_TOKEN:-}" ]]; then
   cat >&2 <<'EOM'
 [bootstrap] Missing GH_TOKEN.
 
-This bootstrapper needs GH_TOKEN to clone the private eve-bootstrap repo.
+Provide it either as:
+  - env var: GH_TOKEN=... (recommended for one-shot runs)
+  - file: ~/.config/eve-bootstrap/.env containing GH_TOKEN=...
 EOM
   exit 2
 fi
