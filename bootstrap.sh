@@ -29,11 +29,7 @@ if ! command -v git >/dev/null 2>&1; then
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y git
 fi
 
-if ! command -v gh >/dev/null 2>&1; then
-  echo "[bootstrap] Installing gh (GitHub CLI)..."
-  sudo apt-get update -y
-  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y gh
-fi
+# gh is optional; we prefer plain git + GH_TOKEN header auth for non-interactive runs.
 
 # Optional fallback: load GH_TOKEN from ~/.config/eve-bootstrap/.env
 # (This keeps VM bringup zero-config except the two critical secrets.)
@@ -57,24 +53,21 @@ EOM
   exit 2
 fi
 
-# Explicitly authenticate gh with GH_TOKEN (clear any stale auth state)
-echo "[bootstrap] Authenticating gh with GH_TOKEN"
-rm -rf ~/.config/gh/hosts.yml ~/.config/gh/config.yml 2>/dev/null || true
-echo "$GH_TOKEN" | gh auth login --with-token --hostname github.com
+echo "[bootstrap] Preparing GitHub auth header (GH_TOKEN)"
+auth_b64="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
 
-echo "[bootstrap] Verifying authentication"
-if ! gh auth status >/dev/null 2>&1; then
-  echo "[bootstrap] ERROR: gh auth failed despite GH_TOKEN being set" >&2
-  exit 1
-fi
-
-echo "[bootstrap] Cloning/updating private repo into $CHECKOUT_DIR"
 if [[ -d "${CHECKOUT_DIR}/.git" ]]; then
-  # Use gh so private repo sync works with GH_TOKEN (no git credential prompts)
-  (cd "${CHECKOUT_DIR}" && gh repo sync)
+  echo "[bootstrap] Updating private repo in ${CHECKOUT_DIR}"
+  git -C "${CHECKOUT_DIR}" \
+    -c http.https://github.com/.extraheader="AUTHORIZATION: basic ${auth_b64}" \
+    -c filter.git-crypt.smudge= \
+    -c filter.git-crypt.clean= \
+    -c filter.git-crypt.required=false \
+    pull --ff-only
 else
-  # Use gh so private repo clone works without additional git credential prompts
-  gh repo clone rixbeck/eve-bootstrap "$CHECKOUT_DIR"
+  echo "[bootstrap] Cloning private repo into ${CHECKOUT_DIR}"
+  git -c http.https://github.com/.extraheader="AUTHORIZATION: basic ${auth_b64}" \
+    clone "${REPO_URL}" "${CHECKOUT_DIR}"
 fi
 
 echo "[bootstrap] Delegating to private bootstrap.sh"
